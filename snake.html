@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake Game</title>
+    <style>
+      :root {
+        --bg-1: #0f172a;
+        --bg-2: #111827;
+        --panel: rgba(15, 23, 42, 0.82);
+        --panel-border: rgba(110, 231, 183, 0.35);
+        --accent: #6ee7b7;
+        --accent-2: #a78bfa;
+        --danger: #f87171;
+        --food: #fbbf24;
+        --snake: #34d399;
+        --snake-head: #10b981;
+        --grid: rgba(148, 163, 184, 0.18);
+        --text: #e2e8f0;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top, #1e293b 0%, var(--bg-1) 38%, var(--bg-2) 100%);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .game-shell {
+        width: min(92vw, 660px);
+        background: var(--panel);
+        border: 2px solid var(--panel-border);
+        border-radius: 22px;
+        padding: 22px 20px 18px;
+        box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      .hud {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .title {
+        font-size: clamp(1.5rem, 2vw, 2.2rem);
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .stats {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .pill {
+        background: rgba(110, 231, 183, 0.08);
+        border: 1px solid rgba(110, 231, 183, 0.28);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-weight: 700;
+      }
+
+      .canvas-wrap {
+        display: flex;
+        justify-content: center;
+      }
+
+      canvas {
+        width: min(100%, 480px);
+        height: auto;
+        display: block;
+        background: rgba(15, 23, 42, 0.95);
+        border: 2px solid rgba(165, 180, 252, 0.2);
+        border-radius: 16px;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 18px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        appearance: none;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 20px;
+        background: linear-gradient(180deg, #6ee7b7, #34d399);
+        color: #042d22;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        box-shadow: 0 12px 24px rgba(52, 211, 153, 0.28);
+      }
+
+      .status {
+        margin-top: 14px;
+        min-height: 22px;
+        text-align: center;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      .brain-panel {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 14px;
+        padding: 12px;
+        border: 1px solid rgba(167, 139, 250, 0.32);
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(167, 139, 250, 0.14), rgba(15, 23, 42, 0.52));
+      }
+
+      .brain-value {
+        min-width: 0;
+        padding: 9px 10px;
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.58);
+        text-align: center;
+      }
+
+      .brain-label {
+        display: block;
+        color: #a5b4fc;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .brain-output {
+        display: block;
+        margin-top: 4px;
+        color: #f8fafc;
+        font-size: 0.94rem;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 520px) {
+        .game-shell { padding: 16px 12px 14px; }
+        .brain-panel { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-shell">
+      <div class="hud">
+        <div class="title">Snake</div>
+        <div class="stats">
+          <div class="pill">Score: <span id="score">0</span></div>
+          <div class="pill">Best: <span id="best">0</span></div>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="480" height="480"></canvas>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">Start Game</button>
+      </div>
+
+      <div class="brain-panel" aria-live="polite">
+        <div class="brain-value"><span class="brain-label">Prediction</span><span id="prediction" class="brain-output">Ready</span></div>
+        <div class="brain-value"><span class="brain-label">Decision</span><span id="decision" class="brain-output">Ready</span></div>
+        <div class="brain-value"><span class="brain-label">Target distance</span><span id="distance" class="brain-output">0</span></div>
+      </div>
+
+      <div id="status" class="status">Ready</div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const scoreEl = document.getElementById('score');
+      const bestEl = document.getElementById('best');
+      const statusEl = document.getElementById('status');
+      const startBtn = document.getElementById('startBtn');
+      const predictionEl = document.getElementById('prediction');
+      const decisionEl = document.getElementById('decision');
+      const distanceEl = document.getElementById('distance');
+
+      const gridSize = 20;
+      const tileSize = canvas.width / gridSize;
+      const tickDelay = 90;
+
+      let snake;
+      let direction;
+      let nextDirection;
+      let food;
+      let score;
+      let bestScore;
+      let gameLoop;
+      let isRunning;
+      let layaRequestActive;
+      let layaMoveReady;
+      let layaPreferredMove;
+      let recentHeads;
+
+      function loadBest() {
+        const saved = Number(localStorage.getItem('snake-best-score') || 0);
+        bestScore = Number.isFinite(saved) ? saved : 0;
+        bestEl.textContent = String(bestScore);
+      }
+
+      function saveBest() {
+        localStorage.setItem('snake-best-score', String(bestScore));
+        bestEl.textContent = String(bestScore);
+      }
+
+      function resetGame() {
+        snake = [
+          { x: 10, y: 10 },
+          { x: 9, y: 10 },
+          { x: 8, y: 10 }
+        ];
+        direction = { x: 1, y: 0 };
+        nextDirection = { x: 1, y: 0 };
+        score = 0;
+        scoreEl.textContent = '0';
+        food = randomFood();
+        isRunning = false;
+        layaRequestActive = false;
+        layaMoveReady = false;
+        layaPreferredMove = null;
+        recentHeads = [];
+        statusEl.textContent = 'Ready';
+        predictionEl.textContent = 'Ready';
+        decisionEl.textContent = 'Ready';
+        distanceEl.textContent = '0';
+      }
+
+      function randomFood() {
+        let newFood;
+        do {
+          newFood = {
+            x: Math.floor(Math.random() * gridSize),
+            y: Math.floor(Math.random() * gridSize)
+          };
+        } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+        return newFood;
+      }
+
+      function moveDistanceFromFood(fromX, fromY, bodyCells) {
+        const queue = [{ x: fromX, y: fromY }];
+        const visited = new Set([`${fromX},${fromY}`]);
+        const distanceMap = new Map([[`${fromX},${fromY}`, 0]]);
+        const directions = [
+          { name: 'up', x: 0, y: -1 },
+          { name: 'right', x: 1, y: 0 },
+          { name: 'down', x: 0, y: 1 },
+          { name: 'left', x: -1, y: 0 }
+        ];
+
+        while (queue.length) {
+          const current = queue.shift();
+          const currentKey = `${current.x},${current.y}`;
+          if (current.x === food.x && current.y === food.y) {
+            return distanceMap.get(currentKey);
+          }
+
+          for (const move of directions) {
+            const next = { x: current.x + move.x, y: current.y + move.y };
+            const nextKey = `${next.x},${next.y}`;
+            if (next.x < 0 || next.x >= gridSize || next.y < 0 || next.y >= gridSize || visited.has(nextKey)) {
+              continue;
+            }
+            const blocked = bodyCells.has(nextKey);
+            if (blocked) continue;
+            visited.add(nextKey);
+            distanceMap.set(nextKey, distanceMap.get(currentKey) + 1);
+            queue.push(next);
+          }
+        }
+
+        return Number.POSITIVE_INFINITY;
+      }
+
+      function chooseSmartMove(preferredMove = null) {
+        const moves = [
+          { name: 'up', x: 0, y: -1 },
+          { name: 'right', x: 1, y: 0 },
+          { name: 'down', x: 0, y: 1 },
+          { name: 'left', x: -1, y: 0 }
+        ];
+        const head = snake[0];
+        const inside = (x, y) => x >= 0 && x < gridSize && y >= 0 && y < gridSize;
+
+        const candidates = moves.map(move => {
+          if (snake.length > 1 && move.x === -direction.x && move.y === -direction.y) return null;
+
+          const next = { x: head.x + move.x, y: head.y + move.y };
+          if (!inside(next.x, next.y)) return null;
+
+          const willEat = next.x === food.x && next.y === food.y;
+          const bodyToCheck = willEat ? snake : snake.slice(0, -1);
+          if (bodyToCheck.some(segment => segment.x === next.x && segment.y === next.y)) return null;
+
+          const bodySet = new Set(bodyToCheck.map(segment => `${segment.x},${segment.y}`));
+          const queue = [{ x: next.x, y: next.y }];
+          const visited = new Set([`${next.x},${next.y}`]);
+          let reachable = 0;
+
+          while (queue.length) {
+            const current = queue.shift();
+            reachable += 1;
+            for (const step of moves) {
+              const probe = { x: current.x + step.x, y: current.y + step.y };
+              const key = `${probe.x},${probe.y}`;
+              if (!inside(probe.x, probe.y) || visited.has(key) || bodySet.has(key)) continue;
+              visited.add(key);
+              queue.push(probe);
+            }
+          }
+
+          const pathDistance = moveDistanceFromFood(next.x, next.y, bodySet);
+          const distanceToFood = Number.isFinite(pathDistance)
+            ? pathDistance
+            : Math.abs(next.x - food.x) + Math.abs(next.y - food.y) + gridSize;
+          const repeatPenalty = recentHeads.filter(point => point.x === next.x && point.y === next.y).length * 50;
+          return {
+            ...move,
+            distanceToFood,
+            reachable,
+            score: (willEat ? -1000 : distanceToFood * 100) - repeatPenalty + reachable
+          };
+        }).filter(Boolean);
+
+        if (!candidates.length) {
+          const fallback = moves.find(move => {
+            const next = { x: head.x + move.x, y: head.y + move.y };
+            return inside(next.x, next.y);
+          }) || { name: 'right', x: 1, y: 0 };
+          return fallback;
+        }
+
+        const ranked = candidates.sort((a, b) => {
+          const scoreDelta = a.score - b.score;
+          if (scoreDelta !== 0) return scoreDelta;
+          if (preferredMove && a.name === preferredMove) return -1;
+          if (preferredMove && b.name === preferredMove) return 1;
+          return a.distanceToFood - b.distanceToFood || b.reachable - a.reachable;
+        });
+        return ranked[0];
+      }
+
+      function isSafeMove(move) {
+        const point = { x: snake[0].x + move.x, y: snake[0].y + move.y };
+        const eating = point.x === food.x && point.y === food.y;
+        const bodyToCheck = eating ? snake : snake.slice(0, -1);
+        return point.x >= 0 && point.x < gridSize && point.y >= 0 && point.y < gridSize &&
+          !bodyToCheck.some(segment => segment.x === point.x && segment.y === point.y);
+      }
+
+      async function requestLayaMove() {
+        if (layaRequestActive) return null;
+        layaRequestActive = true;
+
+        try {
+          const response = await fetch('/snake-move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ snake, food, direction, gridSize })
+          });
+
+          if (!response.ok) {
+            throw new Error('Laya request failed');
+          }
+
+          const data = await response.json();
+          const predictionText = data.prediction || data.decision || 'unknown';
+          const decisionText = data.decision || 'unknown';
+          predictionEl.textContent = predictionText;
+          const moveMap = {
+            up: { x: 0, y: -1 },
+            down: { x: 0, y: 1 },
+            left: { x: -1, y: 0 },
+            right: { x: 1, y: 0 }
+          };
+
+          const modelChoice = data.target || decisionText || 'right';
+          const modelMove = moveMap[modelChoice] || moveMap.right;
+          layaPreferredMove = modelChoice;
+
+          if (snake.length > 1 && modelMove.x === -direction.x && modelMove.y === -direction.y) {
+            nextDirection = chooseSmartMove();
+            decisionEl.textContent = nextDirection.name || 'safe';
+            distanceEl.textContent = String(Math.abs(snake[0].x - food.x) + Math.abs(snake[0].y - food.y));
+            return null;
+          }
+
+          if (!isSafeMove(modelMove)) {
+            nextDirection = chooseSmartMove();
+            decisionEl.textContent = nextDirection.name || 'safe';
+            distanceEl.textContent = String(Math.abs(snake[0].x - food.x) + Math.abs(snake[0].y - food.y));
+            return null;
+          }
+
+          decisionEl.textContent = modelChoice;
+          distanceEl.textContent = String(data.distance ?? Math.abs(snake[0].x - food.x) + Math.abs(snake[0].y - food.y));
+          return modelChoice;
+        } catch (error) {
+          predictionEl.textContent = 'Fallback';
+          nextDirection = chooseSmartMove();
+          decisionEl.textContent = nextDirection.name || 'safe';
+          distanceEl.textContent = String(Math.abs(snake[0].x - food.x) + Math.abs(snake[0].y - food.y));
+          return null;
+        } finally {
+          layaRequestActive = false;
+        }
+      }
+
+      async function startGame() {
+        resetGame();
+        isRunning = true;
+        statusEl.textContent = 'Laya is playing';
+        if (gameLoop) clearTimeout(gameLoop);
+
+        const play = () => {
+          if (!isRunning) return;
+
+          const move = chooseSmartMove(layaPreferredMove);
+          direction = { x: move.x, y: move.y };
+          nextDirection = direction;
+
+          const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+          const willEat = head.x === food.x && head.y === food.y;
+          const bodyToCheck = willEat ? snake : snake.slice(0, -1);
+
+          if (
+            head.x < 0 || head.x >= gridSize ||
+            head.y < 0 || head.y >= gridSize ||
+            bodyToCheck.some(segment => segment.x === head.x && segment.y === head.y)
+          ) {
+            endGame();
+            return;
+          }
+
+          snake.unshift(head);
+          recentHeads.push(head);
+          if (recentHeads.length > 120) recentHeads.shift();
+
+          if (willEat) {
+            score += 1;
+            scoreEl.textContent = String(score);
+            if (score > bestScore) {
+              bestScore = score;
+              saveBest();
+            }
+            food = randomFood();
+          } else {
+            snake.pop();
+          }
+
+          requestLayaMove();
+          draw();
+          gameLoop = setTimeout(play, tickDelay);
+        };
+
+        play();
+      }
+
+      function step() {
+        if (!isRunning) return;
+
+        direction = nextDirection;
+        const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+        if (
+          head.x < 0 || head.x >= gridSize ||
+          head.y < 0 || head.y >= gridSize ||
+          snake.some(segment => segment.x === head.x && segment.y === head.y)
+        ) {
+          endGame();
+          return;
+        }
+
+        snake.unshift(head);
+
+        if (head.x === food.x && head.y === food.y) {
+          score += 1;
+          scoreEl.textContent = String(score);
+          if (score > bestScore) {
+            bestScore = score;
+            saveBest();
+          }
+          food = randomFood();
+        } else {
+          snake.pop();
+        }
+
+        draw();
+      }
+
+      function endGame() {
+        isRunning = false;
+        clearTimeout(gameLoop);
+        statusEl.textContent = 'Game Over';
+      }
+
+      function drawBoard() {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let x = 0; x < gridSize; x++) {
+          for (let y = 0; y < gridSize; y++) {
+            ctx.fillStyle = (x + y) % 2 === 0 ? 'rgba(148, 163, 184, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+            ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+          }
+        }
+      }
+
+      function drawFood() {
+        const x = food.x * tileSize;
+        const y = food.y * tileSize;
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(x + tileSize / 2, y + tileSize / 2, tileSize / 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawSnake() {
+        snake.forEach((segment, index) => {
+          const x = segment.x * tileSize;
+          const y = segment.y * tileSize;
+
+          ctx.fillStyle = index === 0 ? '#10b981' : '#34d399';
+          ctx.fillRect(x + 2, y + 2, tileSize - 4, tileSize - 4);
+
+          if (index === 0) {
+            ctx.fillStyle = '#052e2b';
+            ctx.fillRect(x + tileSize * 0.28, y + tileSize * 0.3, 5, 5);
+            ctx.fillRect(x + tileSize * 0.62, y + tileSize * 0.3, 5, 5);
+          }
+        });
+      }
+
+      function draw() {
+        drawBoard();
+        drawFood();
+        drawSnake();
+      }
+
+      document.addEventListener('keydown', (event) => {
+        const key = event.key.toLowerCase();
+        const left = { x: -1, y: 0 };
+        const right = { x: 1, y: 0 };
+        const up = { x: 0, y: -1 };
+        const down = { x: 0, y: 1 };
+
+        const nextMap = {
+          arrowleft: left,
+          a: left,
+          arrowright: right,
+          d: right,
+          arrowup: up,
+          w: up,
+          arrowdown: down,
+          s: down,
+        };
+
+        if (!nextMap[key]) return;
+
+        const candidate = nextMap[key];
+        if (
+          candidate.x === -direction.x && candidate.y === -direction.y && snake.length > 1
+        ) {
+          return;
+        }
+
+        nextDirection = candidate;
+      });
+
+      startBtn.addEventListener('click', startGame);
+      loadBest();
+      resetGame();
+      draw();
+    </script>
+  </body>
+</html>

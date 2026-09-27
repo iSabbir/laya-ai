@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laya Support Ticket Test</title>
+<style>
+:root{color-scheme:dark;--bg:#08111f;--panel:#101d31;--line:#28425f;--text:#eef6ff;--muted:#9bb0c9;--green:#57e39a;--amber:#ffd166;--blue:#71b7ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(135deg,#08111f,#10233b 55%,#123d4a);font-family:Segoe UI,Arial,sans-serif;color:var(--text);display:grid;place-items:center;padding:36px}.report{width:min(980px,100%);background:rgba(16,29,49,.94);border:1px solid var(--line);border-radius:24px;padding:42px;box-shadow:0 24px 80px #02081299}.eyebrow{color:var(--green);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:13px}.title{font-size:44px;line-height:1.05;margin:12px 0 8px}.subtitle{color:var(--muted);font-size:18px;margin:0 0 30px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.card{background:#0b1729;border:1px solid var(--line);border-radius:16px;padding:22px}.label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.1em}.value{font-size:30px;font-weight:800;margin-top:8px}.pass{color:var(--green)}.warn{color:var(--amber)}.ticket{margin-top:18px;line-height:1.6;color:#d9e7f5}.ticket strong{color:#fff}.checks{margin:26px 0 0;padding:0;list-style:none;display:grid;gap:12px}.checks li{display:flex;justify-content:space-between;gap:20px;padding:14px 16px;background:#0b1729;border:1px solid var(--line);border-radius:12px}.status{color:var(--green);font-weight:800}.footer{margin-top:26px;color:var(--muted);font-size:14px}.footer b{color:var(--blue)}@media(max-width:700px){body{padding:16px}.report{padding:26px}.title{font-size:34px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="report">
+<div class="eyebrow">Laya / Local validation</div>
+<h1 class="title">Support Ticket Triage</h1>
+<p class="subtitle">On-device decision engine test report</p>
+<section class="grid">
+<div class="card"><div class="label">Ticket under test</div><p class="ticket"><strong>Customer:</strong> Enterprise account<br><strong>Issue:</strong> Duplicate charge on invoice 4411<br><strong>Request:</strong> Reverse the duplicate payment</p></div>
+<div class="card"><div class="label">Routing suite</div><div class="value pass">546 passed</div><div class="ticket">0 failed · model-free local checks</div></div>
+</section>
+<ul class="checks">
+<li><span>Language and model routing</span><span class="status">PASS</span></li>
+<li><span>Support triage schema</span><span class="status">PASS</span></li>
+<li><span>Choice / urgency / frustration / refund / churn fields</span><span class="status">PASS</span></li>
+<li><span>Full local inference checkpoint</span><span class="status warn">CHECKPOINT REQUIRED</span></li>
+</ul>
+<p class="footer">Tested locally in <b>D:\LAYA\laya</b> · Laya v0.3.20 · No hosted API used</p>
+</main>
+</body>
+</html>
