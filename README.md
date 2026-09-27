@@ -23,6 +23,12 @@ GitHub: [github.com/iSabbir](https://github.com/iSabbir)
 - **Road-avoidance game:** A browser game and Python prototype demonstrating lane decisions.
 - **Laya engine:** The upstream local decision engine for typed `choice`, `score`, and `noul` predictions.
 
+## Project demo
+
+[![Support-ticket test cases](assets/showcase/support-ticket-cases.png)](assets/showcase/laya-game-demo.mp4)
+
+[▶ Watch the gameplay demo](assets/showcase/laya-game-demo.mp4) · [Join the discussion on LinkedIn](https://www.linkedin.com/posts/imtias-sabbir_recently-i-tried-laya-a-fast-open-source-ugcPost-7509955608293335040-UhMW/?utm_source=social_share_send&utm_medium=member_desktop_web&rcm=ACoAAEaJT6MBZomcu6NgpvBgaj4LNog19eLrxoA)
+
 ## Support ticket cases
 
 The example runner is [`test_support_cases.py`](test_support_cases.py). It prints each message, the model's prediction, the expected reference values, and the routing checkpoint. Model output can vary with the checkpoint revision and inference environment; the printed `PASS` or `CHECK` compares predictions with the reference values in the script.
